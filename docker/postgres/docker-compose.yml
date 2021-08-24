@@ -1,0 +1,15 @@
+version: "3"
+services:
+  db:
+    build: ""
+    container_name: "postgres-sample"
+    ports:
+      - "5432:5432"
+    env_file:
+      - properties.env
+    volumes:
+      - project-data:/var/lib/postgresql/data
+
+volumes:
+  project-data:
+    driver: local
