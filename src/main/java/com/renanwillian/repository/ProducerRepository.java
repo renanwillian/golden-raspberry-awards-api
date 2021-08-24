@@ -38,18 +38,21 @@ public class ProducerRepository implements PanacheRepository<Producer> {
     }
 
     private String sqlProducerIntervalAward() {
-        return " WITH award_interval AS (" +
-                "    SELECT " +
-                "      producer.name, " +
-                "      MIN(year) AS previous, " +
-                "      MAX(year) AS following, " +
-                "      MAX(year) - MIN(year) AS years_between " +
-                "    FROM producer " +
-                "      JOIN movie_producer ON producer.producer_id = movie_producer.producer_id " +
-                "      JOIN movie ON movie_producer.movie_id = movie.movie_id " +
-                "    WHERE winner IS TRUE GROUP BY producer.producer_id HAVING COUNT(1) > 1 " +
+        return " WITH producer_row_number AS ( " +
+                "    SELECT ROW_NUMBER() OVER (ORDER BY producer_id, year) AS row_number, producer_id, year " +
+                "    FROM movie_producer " +
+                "    JOIN movie ON movie_producer.movie_id = movie.movie_id " +
+                "    WHERE winner IS TRUE " +
+                "    ORDER BY producer_id, year " +
+                "), " +
+                "award_interval AS ( " +
+                "    SELECT p1.producer_id, p1.year AS previous, p2.year AS following, p2.year - p1.year AS years_between " +
+                "    FROM producer_row_number p1 " +
+                "    JOIN producer_row_number p2 ON p1.producer_id = p2.producer_id AND p1.row_number + 1 = p2.row_number " +
                 ") " +
-                "SELECT name, previous, following, years_between FROM award_interval ";
+                "SELECT name, previous, following, years_between " +
+                "FROM award_interval " +
+                "JOIN producer ON award_interval.producer_id = producer.producer_id  ";
     }
 
     private String sqlProducerWithMaxIntervalAward() {
